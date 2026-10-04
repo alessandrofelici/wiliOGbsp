@@ -16,10 +16,19 @@ if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
     add_compile_options(-Wall -Wextra)
 endif()
 
+# glibc and MinGW keep sinf/sqrtf/logf in a separate libm; the target build
+# gets it from the Pico SDK. MSVC folds libm into its CRT and has no "m".
+if(MSVC)
+    set(FWOG_HOST_LIBM "")
+else()
+    set(FWOG_HOST_LIBM m)
+endif()
+
 function(fwog_add_test name)
     add_executable(${name} ${name}.c ${CMAKE_CURRENT_SOURCE_DIR}/test_util.c ${ARGN})
     target_include_directories(${name} PRIVATE ${BSP} ${CMAKE_CURRENT_SOURCE_DIR})
     target_compile_definitions(${name} PRIVATE HOST_TEST=1)
+    target_link_libraries(${name} PRIVATE ${FWOG_HOST_LIBM})
     add_test(NAME ${name} COMMAND ${name})
 endfunction()
 
@@ -53,6 +62,7 @@ function(fwog_add_cpu_test name cpu)
     target_include_directories(${name} PRIVATE
         ${BSP}/${cpu}_cpu ${BSP} ${CMAKE_CURRENT_SOURCE_DIR})
     target_compile_definitions(${name} PRIVATE HOST_TEST=1)
+    target_link_libraries(${name} PRIVATE ${FWOG_HOST_LIBM})
     add_test(NAME ${name} COMMAND ${name})
 endfunction()
 
